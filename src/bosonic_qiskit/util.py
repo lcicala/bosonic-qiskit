@@ -448,6 +448,7 @@ def simulate(
     noise_passes: NoisePassLike | None = None,
     max_parallel_threads: int = 0,
     discretize: bool = False,
+    backend = qiskit_aer.AerSimulator(),
 ) -> SimulateResult:
     """Convenience function to simulate using the given backend.
 
@@ -499,23 +500,23 @@ def simulate(
             circuit_compiled = noise_pass(circuit_compiled)
 
     # Transpile for simulator
-    simulator = qiskit_aer.AerSimulator()
+    simulator = backend
 
     if circuit_compiled.requires_transpile() or noise_pass_lst:
         # TODO do we need more than the translation pass manager?
-        # circuit_compiled = qiskit.transpile(circuit_compiled, simulator)
+        #circuit_compiled = qiskit.transpile(circuit_compiled, simulator)
 
         pm = qiskit.transpiler.preset_passmanagers.common.generate_translation_passmanager(
             target=simulator.target
         )
         circuit_compiled = pm.run(circuit_compiled)
 
+    circuit_compiled = qiskit.transpile(circuit_compiled, simulator)
     # Run and get statevector
     result = simulator.run(
         circuit_compiled,
         shots=shots,
-        max_parallel_threads=max_parallel_threads,
-        noise_model=noise_model,
+        memory=True
     ).result()
 
     # The user may have added their own circuit.save_statevector
